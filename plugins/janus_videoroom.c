@@ -6014,7 +6014,7 @@ static gboolean janus_gst_create_pipeline(forward_media_type media_type,
 				"udpsrc address=127.0.0.1 port=0 name=%s "
 				" caps=\"application/x-rtp,media=video,encoding-name=VP8\" !"
 				" rtpjitterbuffer  name=rtpjitterbufferVideo ! rtpvp8depay name=rtpvp8depayVideo ! vp8dec ! queue max-size-time=10000000 ! "
-				" videoconvert ! x264enc ! video/x-h264,profile=baseline ! queue max-size-time=10000000 ! h264parse name=h264parseVideo ! queue name=queueVideo max-size-time=10000000 ! "
+				" videoconvert ! x264enc ! video/x-h264,profile=baseline ! h264parse name=h264parseVideo ! queue name=queueVideo max-size-time=10000000 ! "
 				" rtspclientsink name=rtspClientSinkVideo  protocols=GST_RTSP_LOWER_TRANS_TCP tcp-timeout=%d location=\"%s\" latency=0",
                  		UDPSRC_1_ELEMENT_NAME, GST_FAIL_AFTER_TCP_TIMEOUT_MICROSEC, rtsp_full_url),
 				"launch_string", 0, MAX_STRING_LEN);
