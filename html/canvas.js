@@ -50,7 +50,7 @@ else
 
 var janus = null;
 var echotest = null;
-var opaqueId = "echotest-"+Janus.randomString(12);
+var opaqueId = "canvas-"+Janus.randomString(12);
 
 var bitrateTimer = null;
 var spinner = null;
@@ -62,7 +62,23 @@ var doSimulcast = (getQueryStringValue("simulcast") === "yes" || getQueryStringV
 var doSimulcast2 = (getQueryStringValue("simulcast2") === "yes" || getQueryStringValue("simulcast2") === "true");
 var acodec = (getQueryStringValue("acodec") !== "" ? getQueryStringValue("acodec") : null);
 var vcodec = (getQueryStringValue("vcodec") !== "" ? getQueryStringValue("vcodec") : null);
+var vprofile = (getQueryStringValue("vprofile") !== "" ? getQueryStringValue("vprofile") : null);
 var simulcastStarted = false;
+
+// We'll try to do 15 frames per second: should be relatively fluid, and
+// most important should be doable in JavaScript on lower end machines too
+var fps = 15;
+// Let's add some placeholders for the tweaks we can configure
+var myText = "Hi there!";
+var myColor = "white";
+var myFont = "20pt Calibri";
+var myX = 15, myY = 223;
+// As the "watermark", we'll use a smaller version of the Janus logo
+var logoUrl = "./janus-logo-small.png";
+var logoW = 340, logoH = 110;
+var logoS = 0.4;
+var logoX = 432 - logoW*logoS - 5, logoY = 5;
+
 
 $(document).ready(function() {
 	// Initialize the library (all console debuggers enabled)
@@ -73,13 +89,6 @@ $(document).ready(function() {
 			// Make sure the browser supports WebRTC
 			if(!Janus.isWebrtcSupported()) {
 				bootbox.alert("No WebRTC support... ");
-				return;
-			}
-			// Make sure Insertable Streams are supported too
-			if(!RTCRtpSender.prototype.createEncodedStreams &&
-					!RTCRtpSender.prototype.createEncodedAudioStreams &&
-					!RTCRtpSender.prototype.createEncodedVideoStreams) {
-				bootbox.alert("Insertable Streams not supported by this browser... ");
 				return;
 			}
 			// Create session
@@ -105,6 +114,8 @@ $(document).ready(function() {
 									$('#details').remove();
 									echotest = pluginHandle;
 									Janus.log("Plugin attached! (" + echotest.getPlugin() + ", id=" + echotest.getId() + ")");
+									// We're connected to the plugin, create and populate the canvas element
+									createCanvas();
 									$('#start').removeAttr('disabled').html("Stop")
 										.click(function() {
 											$(this).attr('disabled', true);
@@ -113,8 +124,6 @@ $(document).ready(function() {
 											bitrateTimer = null;
 											janus.destroy();
 										});
-									// Before starting, we prompt for a secret
-									promptCryptoKey();
 								},
 								error: function(error) {
 									console.error("  -- Error attaching plugin...", error);
@@ -155,7 +164,7 @@ $(document).ready(function() {
 								},
 								onmessage: function(msg, jsep) {
 									Janus.debug(" ::: Got a message :::", msg);
-									if(jsep !== undefined && jsep !== null) {
+									if(jsep) {
 										Janus.debug("Handling SDP as well...", jsep);
 										echotest.handleRemoteJsep({ jsep: jsep });
 									}
@@ -180,8 +189,6 @@ $(document).ready(function() {
 										// Any loss?
 										var status = result["status"];
 										if(status === "slow_link") {
-											//~ var bitrate = result["bitrate"];
-											//~ toastr.warning("The bitrate has been cut to " + (bitrate/1000) + "kbps", "Packet loss?", {timeOut: 2000});
 											toastr.warning("Janus apparently missed many packets we sent, maybe we should reduce the bitrate", "Packet loss?", {timeOut: 2000});
 										}
 									}
@@ -198,13 +205,7 @@ $(document).ready(function() {
 									}
 								},
 								onlocalstream: function(stream) {
-									Janus.debug(" ::: Got a local stream :::", stream);
-									if($('#myvideo').length === 0) {
-										$('#videos').removeClass('hide').show();
-										$('#videoleft').append('<video class="rounded centered" id="myvideo" width="100%" height="100%" autoplay playsinline muted="muted"/>');
-									}
-									Janus.attachMediaStream($('#myvideo').get(0), stream);
-									$("#myvideo").get(0).muted = "muted";
+									// We ignore the stream we got here, we're using the canvas to render it
 									if(echotest.webrtcStuff.pc.iceConnectionState !== "completed" &&
 											echotest.webrtcStuff.pc.iceConnectionState !== "connected") {
 										$("#videoleft").parent().block({
@@ -215,29 +216,6 @@ $(document).ready(function() {
 												color: 'white'
 											}
 										});
-										// No remote video yet
-										$('#videoright').append('<video class="rounded centered" id="waitingvideo" width="100%" height="100%" />');
-										if(spinner == null) {
-											var target = document.getElementById('videoright');
-											spinner = new Spinner({top:100}).spin(target);
-										} else {
-											spinner.spin();
-										}
-									}
-									var videoTracks = stream.getVideoTracks();
-									if(!videoTracks || videoTracks.length === 0) {
-										// No webcam
-										$('#myvideo').hide();
-										if($('#videoleft .no-video-container').length === 0) {
-											$('#videoleft').append(
-												'<div class="no-video-container">' +
-													'<i class="fa fa-video-camera fa-5 no-video-icon"></i>' +
-													'<span class="no-video-text">No webcam available</span>' +
-												'</div>');
-										}
-									} else {
-										$('#videoleft .no-video-container').remove();
-										$('#myvideo').removeClass('hide').show();
 									}
 								},
 								onremotestream: function(stream) {
@@ -252,7 +230,7 @@ $(document).ready(function() {
 											$('#waitingvideo').remove();
 											if(this.videoWidth)
 												$('#peervideo').removeClass('hide').show();
-											if(spinner !== null && spinner !== undefined)
+											if(spinner)
 												spinner.stop();
 											spinner = null;
 											var width = this.videoWidth;
@@ -327,15 +305,6 @@ $(document).ready(function() {
 										}, 1000);
 									}
 								},
-								ondataopen: function(data) {
-									Janus.log("The DataChannel is available!");
-									$('#videos').removeClass('hide').show();
-									$('#datasend').removeAttr('disabled');
-								},
-								ondata: function(data) {
-									Janus.debug("We got data from the DataChannel!", data);
-									$('#datarecv').val(data);
-								},
 								oncleanup: function() {
 									Janus.log(" ::: Got a cleanup notification :::");
 									if(spinner)
@@ -353,7 +322,6 @@ $(document).ready(function() {
 									$('#bitrate').attr('disabled', true);
 									$('#curbitrate').hide();
 									$('#curres').hide();
-									$('#datasend').attr('disabled', true);
 									simulcastStarted = false;
 									$('#simulcast').remove();
 								}
@@ -376,25 +344,115 @@ $(document).ready(function() {
 function checkEnter(event) {
 	var theCode = event.keyCode ? event.keyCode : event.which ? event.which : event.charCode;
 	if(theCode == 13) {
-		sendData();
+		updateCanvas();
 		return false;
 	} else {
 		return true;
 	}
 }
 
-function sendData() {
-	var data = $('#datasend').val();
-	if(data === "") {
-		bootbox.alert('Insert a message to send on the DataChannel');
-		return;
-	}
-	echotest.data({
-		text: data,
-		error: function(reason) { bootbox.alert(reason); },
-		success: function() { $('#datasend').val(''); },
-	});
+// Helper function to create (and populate) our canvas element
+function createCanvas() {
+	// Predefined tweaks
+	$('#text').val(myText);
+	$('#color').val(myColor);
+	$('#font').val(myFont);
+	$('#posX').val(""+myX);
+	$('#posY').val(""+myY);
+	// Capture the local webcam
+	navigator.mediaDevices.getUserMedia(
+		{
+			audio: true,
+			video: {
+				width: { ideal: 432 },
+				height: { ideal: 240 }
+			}
+		})
+		.then(function(stream) {
+			// We have our video
+			Janus.debug(stream);
+			Janus.attachMediaStream($('#myvideo').get(0), stream);
+			$('#myvideo').get(0).muted = "muted";
+			$('#myvideo').get(0).play();
+			// Let's setup the canvas, now
+			$('#myvideo').get(0).addEventListener('play', function () {
+				var myvideo = this;
+				var canvas = document.getElementById('canvas');
+				var context = canvas.getContext('2d');
+				var logo = new Image();
+				logo.onload = function() {
+					(function loop() {
+						if(!myvideo.paused && !myvideo.ended) {
+							// Copy video to image
+							context.drawImage(myvideo, 0, 0);
+							// Add logo
+							context.drawImage(logo,
+								0, 0, logoW, logoH,
+								logoX, logoY, logoW*logoS, logoH*logoS);
+							// Add some text
+							context.fillStyle = 'rgba(0,0,0,0.5)';
+							context.fillRect(0, 190, 432,240);
+							context.font = myFont;
+							context.fillStyle = myColor;
+							context.fillText(myText, myX, myY);
+							// We're drawing at the specified fps
+							setTimeout(loop, 1000 / fps);
+						}
+					})();
+				};
+				logo.src = logoUrl;
+				// Capture the canvas as a local MediaStream
+				canvasStream = canvas.captureStream();
+				canvasStream.addTrack(stream.getAudioTracks()[0]);
+				// Now that the stream is ready, we can create the PeerConnection
+				var body = { audio: true, video: true };
+				// We can try and force a specific codec, by telling the plugin what we'd prefer
+				// For simplicity, you can set it via a query string (e.g., ?vcodec=vp9)
+				if(acodec)
+					body["audiocodec"] = acodec;
+				if(vcodec)
+					body["videocodec"] = vcodec;
+				// For the codecs that support them (VP9 and H.264) you can specify a codec
+				// profile as well (e.g., ?vprofile=2 for VP9, or ?vprofile=42e01f for H.264)
+				if(vprofile)
+					body["videoprofile"] = vprofile;
+				Janus.debug("Sending message:", body);
+				echotest.send({ message: body });
+				Janus.debug("Trying a createOffer too (audio/video sendrecv)");
+				echotest.createOffer(
+					{
+						stream: canvasStream,	// Let's pass the canvas MediaStream
+						// If you want to test simulcasting (Chrome and Firefox only), then
+						// pass a ?simulcast=true when opening this demo page: it will turn
+						// the following 'simulcast' property to pass to janus.js to true
+						simulcast: doSimulcast,
+						simulcast2: doSimulcast2,
+						success: function(jsep) {
+							Janus.debug("Got SDP!", jsep);
+							echotest.send({ message: body, jsep: jsep });
+						},
+						error: function(error) {
+							Janus.error("WebRTC error:", error);
+							bootbox.alert("WebRTC error... " + error.message);
+						}
+					});
+
+			}, 0);
+		})
+		.catch(function(error) {
+			Janus.error(error);
+			bootbox.alert(error);
+		});
 }
+// Helper function to update a canvas when the tweaks are used
+function updateCanvas() {
+	myText = $('#text').val();
+	myColor = $('#color').val();
+	myFont = $('#font').val();
+	myX = parseInt($('#posX').val());
+	myY = parseInt($('#posY').val());
+}
+
 
 // Helper to parse query string
 function getQueryStringValue(name) {
@@ -530,130 +588,4 @@ function updateSimulcastButtons(substream, temporal) {
 		$('#tl-1').removeClass('btn-primary btn-success').addClass('btn-primary');
 		$('#tl-0').removeClass('btn-primary btn-success').addClass('btn-primary');
 	}
-}
-
-// Custom functions to use with Insertable streams: the senderTransform
-// function is what we use to "encrypt" the media we send, while the
-// receiverTransform is what we use to "decrypt" the media we receive.
-// Both functions will use a secret that we'll prompt for when opening
-// the page, meaning that, ideally, we'll be the only one able to decrypt
-// it: Janus will not have access to the media. In a scenario involving
-// multiple participants (e.g., a video call or conference), to use these
-// same functions you'll want to distribute the secret among all participants
-// using an out of band mechanism, so that they can encrypt and decrypt
-// the media and keep Janus out of the loop. Notice that these functions
-// are just an example, and are basically exact copies from this demo:
-// 		https://github.com/webrtc/samples/blob/gh-pages/src/content/peerconnection/endtoend-encryption/js/main.js
-// That said, you're free (or actually, encouraged) to try and use other
-// custom, and more advanced, transform functions as well (e.g., SFrames).
-var currentCryptoKey = null;
-var currentKeyIdentifier = 0;
-function promptCryptoKey() {
-	bootbox.prompt("Insert crypto key (e.g., 'mysecret') to use", function(result) {
-		if(!result || result === "") {
-			promptCryptoKey();
-			return;
-		}
-		// Take note of the secret
-		currentCryptoKey = result;
-		currentKeyIdentifier++;
-		// Negotiate the WebRTC PeerConnection, now (clone of EchoTest demo code)
-		Janus.debug("Trying a createOffer too (audio/video sendrecv)");
-		echotest.createOffer(
-			{
-				// No media provided: by default, it's sendrecv for audio and video
-				media: { data: true },	// Let's negotiate data channels as well
-				// If you want to test simulcasting (Chrome and Firefox only), then
-				// pass a ?simulcast=true when opening this demo page: it will turn
-				// the following 'simulcast' property to pass to janus.js to true.
-				simulcast: doSimulcast,
-				simulcast2: doSimulcast2,
-				// Since we want to use Insertable Streams,
-				// we specify the transform functions to use
-				senderTransforms: senderTransforms,
-				receiverTransforms: receiverTransforms,
-				success: function(jsep) {
-					Janus.debug("Got SDP!", jsep);
-					var body = { audio: true, video: true, data: true };
-					// We can try and force a specific codec, by telling the plugin what we'd prefer
-					// For simplicity, you can set it via a query string (e.g., ?vcodec=vp9)
-					if(acodec)
-						body["audiocodec"] = acodec;
-					if(vcodec)
-						body["videocodec"] = vcodec;
-					echotest.send({ message: body, jsep: jsep });
-				},
-				error: function(error) {
-					Janus.error("WebRTC error:", error);
-					bootbox.alert("WebRTC error... " + error.message);
-				}
-			});
-	});
-}
-var senderTransforms = {}, receiverTransforms = {};
-for(var m of ["audio", "video"]) {
-	senderTransforms[m] = new TransformStream({
-		start() {
-			// Called on startup.
-			console.log("[Sender transform)] Startup");
-		},
-		transform(chunk, controller) {
-			// Copy of the above mentioned demo's encodeFunction()
-			const view = new DataView(chunk.data);
-			const newData = new ArrayBuffer(chunk.data.byteLength + 5);
-			const newView = new DataView(newData);
-			for(let i=0; i<10; ++i) {
-				newView.setInt8(i, view.getInt8(i));
-			}
-			// This is a bitwise xor of the key with the payload. This is not strong encryption, just a demo.
-			for(let i=10; i<chunk.data.byteLength; ++i) {
-				const keyByte = currentCryptoKey.charCodeAt(i % currentCryptoKey.length);
-				newView.setInt8(i, view.getInt8(i) ^ keyByte);
-			}
-			newView.setUint8(chunk.data.byteLength, currentKeyIdentifier % 0xff);
-			newView.setUint32(chunk.data.byteLength + 1, 0xDEADBEEF);
-			chunk.data = newData;
-			controller.enqueue(chunk);
-		},
-		flush() {
-			// Called when the stream is about to be closed
-			console.log("[Sender transform] Closing");
-		}
-	});
-	receiverTransforms[m] = new TransformStream({
-		start() {
-			// Called on startup.
-			console.log("[Receiver transform] Startup");
-		},
-		transform(chunk, controller) {
-			// Copy of the above mentioned demo's decodeFunction()
-			const view = new DataView(chunk.data);
-			const checksum = view.getUint32(chunk.data.byteLength - 4);
-			if(checksum !== 0xDEADBEEF) {
-				console.log('Corrupted frame received');
-				console.log(checksum.toString(16));
-				return;
-			}
-			const keyIdentifier = view.getUint8(chunk.data.byteLength - 5);
-			if(keyIdentifier !== currentKeyIdentifier) {
-				console.log(`Key identifier mismatch, got ${keyIdentifier} expected ${currentKeyIdentifier}.`);
-				return;
-			}
-			const newData = new ArrayBuffer(chunk.data.byteLength - 5);
-			const newView = new DataView(newData);
-			for(let i=0; i<10; ++i) {
-				newView.setInt8(i, view.getInt8(i));
-			}
-			for(let i=10; i<chunk.data.byteLength - 5; ++i) {
-				const keyByte = currentCryptoKey.charCodeAt(i % currentCryptoKey.length);
-				newView.setInt8(i, view.getInt8(i) ^ keyByte);
-			}
-			chunk.data = newData;
-			controller.enqueue(chunk);
-		},
-		flush() {
-			// Called when the stream is about to be closed
-			console.log("[Receiver transform] Closing");
-		}
-	});
 }

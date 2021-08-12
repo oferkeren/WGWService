@@ -61,11 +61,10 @@ void janus_auth_init(gboolean enabled, const char *secret) {
 			auth_enabled = TRUE;
 		}
 	} else {
-		JANUS_LOG(LOG_WARN, "Token based authentication disabled\n");
+		JANUS_LOG(LOG_INFO, "Token based authentication disabled\n");
 	}
 	janus_mutex_init(&mutex);
 }
-
 /* CARBYNE-SHC start */
 void carbyne_janus_sanityhealthcheck_auth_init(const char *secret)
 {
