@@ -5706,7 +5706,6 @@ prepare_response:
 	}
 	return response;
 }
-}
 
 struct janus_plugin_result *janus_videoroom_handle_message(janus_plugin_session *handle, char *transaction, json_t *message, json_t *jsep)
 {
@@ -6300,9 +6299,9 @@ error:
 	/*CARBYNE-GST Prepare JSON error event */
 	json_t *event = json_object();
 	if (event != NULL)
-	{
-		char error_cause[JANUS_ERROR_CAUSE_STRING_SIZE] = {0};
-		g_snprintf(error_cause, JANUS_ERROR_CAUSE_STRING_SIZE, "%s", "GST mailfunction");
+	{	
+		char error_cause[JANUS_ERROR_UNAUTHORIZED] = {0};
+		g_snprintf(error_cause, JANUS_ERROR_UNAUTHORIZED, "%s", "GST mailfunction");
 		json_object_set_new(event, "videoroom", json_string("event"));
 		json_object_set_new(event, "error_code", json_integer(JANUS_VIDEOROOM_ERROR_NO_MESSAGE));
 		json_object_set_new(event, "error", json_string(error_cause));
@@ -8077,7 +8076,7 @@ static void *janus_videoroom_handler(void *data)
 				if (FALSE == janus_auth_check_signature(vr_token_text, (const char *)room_id_str))
 				{
 					error_code = JANUS_VIDEOROOM_ERROR_UNAUTHORIZED;
-					g_snprintf(error_cause, JANUS_ERROR_CAUSE_STRING_SIZE, "UNAUTHORIZED, mismatch WGW  token");
+					g_snprintf(error_cause, JANUS_RTP_FORWARD_STRING_SIZE, "UNAUTHORIZED, mismatch WGW  token");
 					goto error;
 				}
 			}
