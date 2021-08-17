@@ -1,0 +1,92 @@
+@Library('devops-jenkins-lib') _
+def appVersion = ''
+gitCredentialsId = 'e4729b13-caae-4669-972f-5307ae6309f4'
+awsCredentialsId = 'dab6216e-af1e-45e8-b957-58796cc47fa2'
+appGitUrl = 'https://ci_reporty@bitbucket.org/reportydev/wgwservice.git'
+imageName = 'wgw_service'
+
+pipeline {
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        timeout(time: 3, unit: 'HOURS')
+    }
+    agent {
+        kubernetes {
+            cloud 'jenkins'
+            yamlFile 'ci/pod.yaml'
+        }
+    }
+//    triggers {
+//        pollSCM('H/3 * * * *') // every 3 mins
+//    }
+    parameters {
+        string(name: 'GIT_BRANCH', defaultValue: 'develop', description: 'Name of the SCM branch')
+        string(name: 'Stack', defaultValue: 'dev', description: 'Name of the Stack')
+    }
+    environment {
+        AWS_DEFAULT_REGION = 'eu-central-1'
+        SERVICE_NAME = 'WGWService'
+        STACK = 'dev'
+        CODE_DEPLOY_STACK = 'Feature'
+    }
+    stages {
+        stage('Parsing WGW Build Version') {
+            steps {
+                script {
+                    appVersion = readFile(file: 'wgw_version')
+                    println(appVersion)
+
+                }
+            }
+        }
+        stage('Deploy image to ECR') {
+            steps {
+                script {
+                    utils.buildDockerImageRealTime(
+                            ecrRepo: '366789379256.dkr.ecr.eu-west-1.amazonaws.com',
+                            gitBranch:"${GIT_BRANCH}",
+                            imageName:"${imageName}_feature",
+                            imageNameVer: "${imageName}_feature:$appVersion",
+                            imageNameLatest: "${imageName}_feature:latest",
+                            dockerCredentialsId: 'ecr:eu-west-1:dab6216e-af1e-45e8-b957-58796cc47fa2',
+                            
+
+                    )
+                }
+            }
+        }
+        stage('AWS-CodeDeploy-Ireland') {
+            steps {
+                script {
+                    utils.awsCodeDeployWGW(
+                            credentialsId: awsCredentialsId,
+                    )
+               }
+            }
+        }
+        
+    }
+    post {
+        always {
+            script {
+                manager.addShortText(manager.build.causes.collect { it.shortDescription }.unique(false).join("\n"))
+                manager.addShortText(params.GIT_BRANCH)
+            }
+        }
+        unsuccessful {
+            step([$class                  : 'Mailer',
+                  notifyEveryUnstableBuild: true,
+                  recipients              : 'hgfhfhf@carbyne911.com',
+                  sendToIndividuals       : true
+            ])
+        }
+        fixed {
+            step([$class                  : 'Mailer',
+                  notifyEveryUnstableBuild: true,
+                  recipients              : 'hgfhfhf@carbyne911.com',
+                  sendToIndividuals       : true
+            ])
+        }
+    }
+}
