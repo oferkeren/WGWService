@@ -253,10 +253,6 @@ RUN  cd /home/ubuntu/ \
     && cd admin_clean_room \ 
     && npm i ws
 
-#copy certs
-COPY config/$JANUS_CERT_FILENAME /opt/janus/share/janus/certs/cert.pem 
-COPY config/$JANUS_KEY_FILENAME /opt/janus/share/janus/certs/key.pem
-
 # link library
 RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib
 

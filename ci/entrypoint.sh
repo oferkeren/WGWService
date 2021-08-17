@@ -123,7 +123,6 @@ function configure_application() {
 
     echo "About to Update parameter in janus.plugin.videoroom.jcfg .. " "$NEW_LINE5"
     sed -i '/plugin_auth_secret=/c\'"$NEW_LINE5" "${FILE2}"
-    #RTSPClient:fju935bfaZ982x40a61ks@
     SGW_CREDS=$(get_conf_entry "sgw_creds")
     SGW_CREDS="${SGW_CREDS%\"}"
     SGW_CREDS_WITHOUT_QUOTES="${SGW_CREDS#\"}"
