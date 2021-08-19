@@ -37,7 +37,8 @@ pipeline {
         stage('Parsing WGW Build Version') {
             steps {
                 script {
-                    appVersion = readFile(file: '${wgwverfile}')
+                    def file = "${WORKSPACE}/ci/deployment/scripts/deploy-scripts/wgw_version"
+                    appVersion = readFile(file)
                     println(appVersion)
 
                 }
@@ -69,5 +70,27 @@ pipeline {
             }
         }
         
+    }
+	post {
+        always {
+            script {
+                manager.addShortText(manager.build.causes.collect { it.shortDescription }.unique(false).join("\n"))
+                manager.addShortText(params.GIT_BRANCH)
+            }
+        }
+        unsuccessful {
+            step([$class                  : 'Mailer',
+                  notifyEveryUnstableBuild: true,
+                  recipients              : 'hgfhfhf@carbyne911.com',
+                  sendToIndividuals       : true
+            ])
+        }
+        fixed {
+            step([$class                  : 'Mailer',
+                  notifyEveryUnstableBuild: true,
+                  recipients              : 'hgfhfhf@carbyne911.com',
+                  sendToIndividuals       : true
+            ])
+        }
     }
 }
