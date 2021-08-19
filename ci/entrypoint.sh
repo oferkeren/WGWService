@@ -27,9 +27,7 @@ function get_aws_credentials() {
 }
 
 function download_configurations_from_s3() {
-    if [[ "$JANUS_ENV" == "local" ]]; then
-        JANUS_ENV="dev"
-    fi
+
     if [[ "$JANUS_ENV" == "local" ]]; then
         aws s3 cp s3://carbyne-deployment-conf/wgw-service/dev/deployment$DEPLOYMENT_CONF_VERSION.conf /home/ubuntu --profile ${AWS_CREDENTIALS_PROFILE_NAME}
         aws s3 cp s3://carbyne-deployment-conf/wgw-service/dev/wgw_carbyneapi-dev_com_cert.pem /home/ubuntu
@@ -39,6 +37,9 @@ function download_configurations_from_s3() {
         aws s3 cp s3://carbyne-deployment-conf-prod/wgw-service/wgw_carbyneapi_com_cert.pem /home/ubuntu
         aws s3 cp s3://carbyne-deployment-conf-prod/wgw-service/wgw_carbyneapi_com_key.pem /home/ubuntu
     elif [[ "$JANUS_ENV" == "stage" || "$JANUS_ENV" == "qa" || "$JANUS_ENV" == "dev" ]]; then
+        if [[ "$JANUS_ENV" == "feature" ]]; then
+            JANUS_ENV="dev"
+        fi
         aws s3 cp s3://carbyne-deployment-conf/wgw-service/$JANUS_ENV/deployment$DEPLOYMENT_CONF_VERSION.conf /home/ubuntu
         aws s3 cp s3://carbyne-deployment-conf/wgw-service/$JANUS_ENV/wgw_carbyneapi-dev_com_cert.pem /home/ubuntu
         aws s3 cp s3://carbyne-deployment-conf/wgw-service/$JANUS_ENV/wgw_carbyneapi-dev_com_key.pem /home/ubuntu
@@ -52,9 +53,13 @@ function download_configurations_from_s3() {
 }
 
 function install_certifications() {
-
-    cp /home/ubuntu/wgw_carbyneapi-dev_com_cert.pem $CERT_PATH
-    cp /home/ubuntu/wgw_carbyneapi-dev_com_key.pem $KEY_PATH
+    if [[ "$JANUS_ENV" == "stage" || "$JANUS_ENV" == "qa" || "$JANUS_ENV" == "dev" ]]; then
+        cp /home/ubuntu/wgw_carbyneapi-dev_com_cert.pem $CERT_PATH
+        cp /home/ubuntu/wgw_carbyneapi-dev_com_key.pem $KEY_PATH
+    elif [[ "$JANUS_ENV" == "prod" || "$JANUS_ENV" == "gov" ]]; then
+        cp /home/ubuntu/wgw_carbyneapi_com_cert.pem $CERT_PATH
+        cp /home/ubuntu/wgw_carbyneapi_com_key.pem $KEY_PATH
+    fi
 }
 
 function update_public_ip_on_route_53() {
@@ -86,7 +91,8 @@ function configure_application() {
     cp janus.transport.http.jcfg "$TRANSPORT_HTTP_CFG_PATH"
 
     local FILE1="/opt/janus/etc/janus/janus.jcfg"
-    local NEW_LINE='admin_secret = "gh95489233453admin"    # String that all Janus requests must contain'
+    local admin_secret=$(get_conf_entry "token.admin_secret")
+    local NEW_LINE="admin_secret = ${admin_secret}    # String that all Janus requests must contain"
     echo "About to Update parameter in janus.jcfg .." "$NEW_LINE"
     sed -i '/admin_secret/c\'"$NEW_LINE" "${FILE1}"
 
