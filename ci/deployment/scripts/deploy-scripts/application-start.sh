@@ -26,7 +26,7 @@ case "$DEPLOYMENT_GROUP_NAME" in
 esac
 
 if [[ "${DEPLOYMENT_VERSION}" != "" ]];then
-    IMAGE_TAG = $DEPLOYMENT_VERSION
+    IMAGE_TAG=$DEPLOYMENT_VERSION
 fi
 
 if [[ "$DEPLOYMENT_GROUP_NAME" == "WGWServiceProduction" ]]; then
