@@ -81,14 +81,14 @@ pipeline {
         unsuccessful {
             step([$class                  : 'Mailer',
                   notifyEveryUnstableBuild: true,
-                  recipients              : 'hgfhfhf@carbyne911.com',
+                  recipients              : 'hgfhעfhf@carbyne911.com',
                   sendToIndividuals       : true
             ])
         }
         fixed {
             step([$class                  : 'Mailer',
                   notifyEveryUnstableBuild: true,
-                  recipients              : 'hgfhfhf@carbyne911.com',
+                  recipients              : 'hgfhעfhf@carbyne911.com',
                   sendToIndividuals       : true
             ])
         }
