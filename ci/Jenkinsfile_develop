@@ -4,7 +4,7 @@ gitCredentialsId = 'e4729b13-caae-4669-972f-5307ae6309f4'
 awsCredentialsId = 'dab6216e-af1e-45e8-b957-58796cc47fa2'
 appGitUrl = 'https://ci_reporty@bitbucket.org/reportydev/wgwservice.git'
 imageName = 'wgw_service'
-GIT_BRANCH = 'develop'
+GIT_BRANCH = 'feature/REP-48994'
 wgwverfile = '/ci/deployment/scripts/deploy-scripts/wgw_version'
 
 pipeline {
