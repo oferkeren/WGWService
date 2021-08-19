@@ -104,7 +104,8 @@ RUN apt-get -y install \
 	qtdeclarative5-dev \
 	libwavpack-dev \
     libvo-aacenc-dev \
-    libvpx-dev
+    libvpx-dev \
+    libgstreamer1.0-dev 
 # compile and install the latest gstreamer
 RUN cd /home/ubuntu \
     && git clone -b "${GSTREAMER_VERSION}" https://gitlab.freedesktop.org/gstreamer/gst-build.git \  
@@ -231,7 +232,7 @@ RUN cd /home/ubuntu/ \
 # clone wgw code
 RUN cd /home/ubuntu/  \  
    && cat /usr/include/gstreamer-1.0/gst/gst.h \ 
-   && git clone -b "$(echo ${WGW_SERVICE_GIT_BRANCH} | sed 's/\<origin\>//g ; s/^.//')" --single-branch https://github.com/reporty/WGWService.git \
+   && git clone -b "${WGW_SERVICE_GIT_BRANCH}" --single-branch https://github.com/reporty/WGWService.git \
    && cd "$JANUS_DIR" \   
    && sh autogen.sh \   
    && ./configure --prefix=/opt/janus \   
@@ -252,6 +253,7 @@ RUN  cd /home/ubuntu/ \
     && unzip admin_clean_room.zip \ 
     && cd admin_clean_room \ 
     && npm i ws
+
 
 # link library
 RUN export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib

@@ -16,6 +16,7 @@ declare -A WGW_images=(\
 ["WGWServiceProductionGov"]=_gov \
 )
 
+DEPLOYMENT_VERSION="$(cat ./wgw_version)"
 ENV_VALUE=$(echo ${WGW_images[$DEPLOYMENT_GROUP_NAME]} | sed 's/_//')
 
 
