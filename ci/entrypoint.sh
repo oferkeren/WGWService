@@ -53,6 +53,7 @@ function download_configurations_from_s3() {
 }
 
 function install_certifications() {
+    mkdir $JANUS_CERT_PATH
     if [[ "$JANUS_ENV" == "stage" || "$JANUS_ENV" == "qa" || "$JANUS_ENV" == "dev" ]]; then
         cp /home/ubuntu/wgw_carbyneapi-dev_com_cert.pem $CERT_PATH
         cp /home/ubuntu/wgw_carbyneapi-dev_com_key.pem $KEY_PATH
