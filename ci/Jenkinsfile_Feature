@@ -21,7 +21,7 @@ pipeline {
         pollSCM('H/3 * * * *') // every 3 mins
     }
     parameters {
-        gitParameter branchFilter: 'origin/(.*)', defaultValue: 'master', name: 'GIT_BRANCH', type: 'PT_BRANCH'
+        gitParameter branchFilter: 'origin/(.*)', defaultValue: 'origin/develop', name: 'GIT_BRANCH', type: 'PT_BRANCH'
         string(name: 'Stack', defaultValue: 'dev', description: 'Name of the Stack')
     }
     environment {
