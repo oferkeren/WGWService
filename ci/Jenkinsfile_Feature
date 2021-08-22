@@ -19,7 +19,6 @@ pipeline {
         }
     }
     parameters {
-        gitParameter branchFilter: 'origin/(.*)', defaultValue: 'origin/develop', name: 'GIT_BRANCH', type: 'PT_BRANCH'
         string(name: 'Stack', defaultValue: 'dev', description: 'Name of the Stack')
     }
     environment {
