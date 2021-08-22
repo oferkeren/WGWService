@@ -9,6 +9,7 @@ pipeline {
     options {
         timestamps()
         disableConcurrentBuilds()
+	skipDefaultCheckout()
         timeout(time: 3, unit: 'HOURS')
     }
     agent {
@@ -16,9 +17,6 @@ pipeline {
             cloud 'jenkins'
             yamlFile 'ci/pod.yaml'
         }
-    }
-    triggers {
-        pollSCM('H/3 * * * *') // every 3 mins
     }
     parameters {
         gitParameter branchFilter: 'origin/(.*)', defaultValue: 'origin/develop', name: 'GIT_BRANCH', type: 'PT_BRANCH'
