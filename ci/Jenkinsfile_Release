@@ -4,6 +4,7 @@ gitCredentialsId = 'e4729b13-caae-4669-972f-5307ae6309f4'
 awsCredentialsId = 'dab6216e-af1e-45e8-b957-58796cc47fa2'
 appGitUrl = 'https://ci_reporty@bitbucket.org/reportydev/wgwservice.git'
 imageName = 'wgw_service'
+GIT_BRANCH = 'develop'
 
 pipeline {
     options {
@@ -34,7 +35,8 @@ pipeline {
         stage('Parsing WGW Build Version') {
             steps {
                 script {
-                    appVersion = readFile(file: 'wgw_version')
+                    def file = "${WORKSPACE}/ci/deployment/scripts/deploy-scripts/wgw_version"
+                    appVersion = readFile(file)
                     println(appVersion)
 
                 }
@@ -77,14 +79,14 @@ pipeline {
         unsuccessful {
             step([$class                  : 'Mailer',
                   notifyEveryUnstableBuild: true,
-                  recipients              : 'hgfhfhf@carbyne911.com',
+                  recipients              : 'team04@carbyne911.com',
                   sendToIndividuals       : true
             ])
         }
         fixed {
             step([$class                  : 'Mailer',
                   notifyEveryUnstableBuild: true,
-                  recipients              : 'hgfhfhf@carbyne911.com',
+                  recipients              : 'team04f@carbyne911.com',
                   sendToIndividuals       : true
             ])
         }
