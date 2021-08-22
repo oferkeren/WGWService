@@ -9,6 +9,7 @@ pipeline {
     options {
         timestamps()
         disableConcurrentBuilds()
+	skipDefaultCheckout()	
         timeout(time: 3, unit: 'HOURS')
     }
     agent {
