@@ -22,7 +22,7 @@ pipeline {
         pollSCM('H/3 * * * *') // every 3 mins
     }
     parameters {
-        gitParameter branchFilter: 'origin/(.*)', defaultValue: 'master', name: 'GIT_BRANCH', type: 'PT_BRANCH'
+        string(name: 'GIT_BRANCH', defaultValue: 'develop', description: 'Name of the Branch')
         string(name: 'Stack', defaultValue: 'dev', description: 'Name of the Stack')
     }
     environment {
@@ -32,6 +32,13 @@ pipeline {
         CODE_DEPLOY_STACK = 'Feature'
     }
     stages {
+	    stage ('Checkout Code') {
+            steps {
+            echo 'checkout Code'
+            checkout([$class: 'GitSCM', branches: [[name: '*/$GIT_BRANCH']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', noTags: false, reference: '', shallow: false, timeout: 10], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'e4729b13-caae-4669-972f-5307ae6309f4', url: 'https://bitbucket.org/reportydev/auditservice.git']]])
+            }
+            
+        }
         stage('Parsing WGW Build Version') {
             steps {
                 script {
