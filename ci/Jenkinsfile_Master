@@ -4,12 +4,12 @@ gitCredentialsId = 'e4729b13-caae-4669-972f-5307ae6309f4'
 awsCredentialsId = 'dab6216e-af1e-45e8-b957-58796cc47fa2'
 appGitUrl = 'https://ci_reporty@bitbucket.org/reportydev/wgwservice.git'
 imageName = 'wgw_service'
-GIT_BRANCH = 'master'
 
 pipeline {
     options {
         timestamps()
         disableConcurrentBuilds()
+		skipDefaultCheckout()
         timeout(time: 3, unit: 'HOURS')
     }
     agent {
@@ -18,12 +18,12 @@ pipeline {
             yamlFile 'ci/pod.yaml'
         }
     }
-//    triggers {
-//        pollSCM('H/3 * * * *') // every 3 mins
-//    }
+    triggers {
+        pollSCM('H/3 * * * *') // every 3 mins
+    }
     parameters {
         string(name: 'GIT_BRANCH', defaultValue: 'master', description: 'Name of the SCM branch')
-        string(name: 'Stack', defaultValue: 'dev', description: 'Name of the Stack')
+        string(name: 'Stack', defaultValue: 'stage', description: 'Name of the Stack')
     }
     environment {
         AWS_DEFAULT_REGION = 'eu-central-1'
@@ -32,6 +32,13 @@ pipeline {
         CODE_DEPLOY_STACK = 'Staging'
     }
     stages {
+	    stage ('Checkout Code') {
+            steps {
+            echo 'checkout Code'
+            checkout([$class: 'GitSCM', branches: [[name: '*/origin/$GIT_BRANCH']], doGenerateSubmoduleConfigurations: false, extensions: [[$class: 'CloneOption', noTags: false, reference: '', shallow: false, timeout: 10], [$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, reference: '', trackingSubmodules: false]], submoduleCfg: [], userRemoteConfigs: [[credentialsId: 'e4729b13-caae-4669-972f-5307ae6309f4', url: 'https://github.com/carbyne911/WGWService.git']]])
+            }
+            
+        }
         stage('Parsing WGW Build Version') {
             steps {
                 script {
